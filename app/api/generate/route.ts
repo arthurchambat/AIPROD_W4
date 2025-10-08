@@ -3,6 +3,11 @@ import runReplicate from '../../../lib/replicateClient'
 
 export async function POST(req: Request) {
   try {
+    // Check if environment variables are configured
+    if (!supabaseServer) {
+      return new Response('Server configuration error: Supabase credentials missing', { status: 500 })
+    }
+
     const form = await req.formData()
     const file = form.get('file') as unknown as File
     const prompt = (form.get('prompt') as string) || ''
