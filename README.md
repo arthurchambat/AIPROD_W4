@@ -1,6 +1,8 @@
-# Next.js IA Image Editor
+# AIPROD W4 - Image Generation
 
-Projet Next.js + TypeScript minimal pour uploader une image, la transformer via Replicate, stocker les images sur Supabase Storage et garder une trace dans la table `projects`.
+Projet Next.js + TypeScript pour uploader une image, la transformer via Replicate AI, stocker les images sur Supabase Storage et garder une trace dans la table `projects`.
+
+**Mode Mock disponible** pour tester sans consommer de crédits Replicate.
 
 Variables d'environnement (créez `.env.local` à la racine) :
 
