@@ -39,11 +39,16 @@ export async function POST(req: Request) {
 
     const publicURL = supabaseServer.storage.from('input-images').getPublicUrl(uploadData.path).data.publicUrl
 
+    console.log('Uploaded image URL:', publicURL)
+    console.log('Prompt:', prompt)
+
     // Call Replicate with the uploaded image and the prompt
     const input = {
       prompt,
       image_input: [publicURL]
     }
+
+    console.log('Calling Replicate with input:', JSON.stringify(input, null, 2))
 
     // Use model name (google/nano-banana) instead of version ID
     const modelName = process.env.REPLICATE_MODEL || 'google/nano-banana'
