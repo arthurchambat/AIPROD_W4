@@ -35,33 +35,79 @@ export default function Page() {
   }
 
   return (
-    <div className="panel">
-      <form onSubmit={handleSubmit} className="form">
-        <label className="label">Choisir une image</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files ? e.target.files[0] : null)}
-        />
-
-        <label className="label">Prompt</label>
-        <textarea value={prompt} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)} rows={4} />
-
-        <button className="primary" type="submit" disabled={loading}>
-          Générer
-        </button>
-      </form>
-
-      <div className="output">
-        {loading && <p>Génération en cours... Cela peut prendre quelques secondes.</p>}
-        {error && <p className="error">{error}</p>}
-        {resultUrl && (
-          <div>
-            <h3>Image générée</h3>
-            <img src={resultUrl} alt="Generated" className="result" />
+    <>
+      <p className="subtitle">
+        Transform your images with AI-powered editing. Upload, prompt, generate.
+      </p>
+      
+      <div className="panel">
+        <form onSubmit={handleSubmit} className="form">
+          <div className="form-title">
+            <span>⚡</span> Input Configuration
           </div>
-        )}
+          
+          <label className="label">Image Upload</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files ? e.target.files[0] : null)}
+          />
+          {file && (
+            <p style={{ fontSize: '0.875rem', color: 'var(--accent-light)', marginTop: '0.5rem' }}>
+              ✓ {file.name}
+            </p>
+          )}
+
+          <label className="label">Transformation Prompt</label>
+          <textarea 
+            value={prompt} 
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)} 
+            rows={5}
+            placeholder="Describe how you want to transform your image..."
+          />
+
+          <button className="primary" type="submit" disabled={loading}>
+            {loading ? '⏳ Generating...' : '✨ Generate Image'}
+          </button>
+        </form>
+
+        <div className="output">
+          {!loading && !resultUrl && !error && (
+            <div className="placeholder">
+              <div className="placeholder-icon">🎨</div>
+              <p><strong>Your generated image will appear here</strong></p>
+              <p>Upload an image and enter a prompt to get started</p>
+            </div>
+          )}
+          
+          {loading && (
+            <div className="loading">
+              <div className="loading-spinner"></div>
+              <p><strong>AI is generating your image...</strong></p>
+              <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                This may take 30-60 seconds
+              </p>
+            </div>
+          )}
+          
+          {error && (
+            <div className="error">
+              <strong>❌ Error</strong>
+              <p style={{ marginTop: '0.5rem' }}>{error}</p>
+            </div>
+          )}
+          
+          {resultUrl && (
+            <div style={{ width: '100%', textAlign: 'center' }}>
+              <div className="success-badge">
+                ✓ Generation Complete
+              </div>
+              <div className="output-title">Generated Result</div>
+              <img src={resultUrl} alt="Generated" className="result" />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
