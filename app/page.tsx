@@ -1,113 +1,74 @@
 'use client'
 
-import React, { useState } from 'react'
+import Link from 'next/link'
+import { useAuth } from '../context/AuthContext'
 
-export default function Page() {
-  const [file, setFile] = useState<File | null>(null)
-  const [prompt, setPrompt] = useState('Make the sheets in the style of the logo. Make the scene natural.')
-  const [loading, setLoading] = useState(false)
-  const [resultUrl, setResultUrl] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    if (!file) return setError('Veuillez choisir une image à uploader')
-    setLoading(true)
-    const form = new FormData()
-    form.append('file', file)
-    form.append('prompt', prompt)
-
-    try {
-      const res = await fetch('/api/generate', { method: 'POST', body: form })
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`Server error (${res.status}): ${text}`)
-      }
-      const data = await res.json()
-      setResultUrl(data.output_image_url)
-    } catch (err: any) {
-      console.error('Error:', err)
-      setError(err.message || 'Erreur de connexion')
-    } finally {
-      setLoading(false)
-    }
-  }
+export default function HomePage() {
+  const { user } = useAuth()
 
   return (
-    <>
-      <p className="subtitle">
-        Transform your images with AI-powered editing. Upload, prompt, generate.
-      </p>
-      
-      <div className="panel">
-        <form onSubmit={handleSubmit} className="form">
-          <div className="form-title">
-            <span>⚡</span> Input Configuration
-          </div>
-          
-          <label className="label">Image Upload</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files ? e.target.files[0] : null)}
-          />
-          {file && (
-            <p style={{ fontSize: '0.875rem', color: 'var(--accent-light)', marginTop: '0.5rem' }}>
-              ✓ {file.name}
-            </p>
-          )}
+    <div className="container">
+      <div className="landing-hero">
+        <h1 className="landing-title">
+          <span className="gradient-text">Transform Your Images</span>
+          <br />
+          with AI Magic
+        </h1>
+        <p className="landing-subtitle">
+          Utilisez l'intelligence artificielle de pointe pour transformer vos images.
+          <br />
+          Créez des visuels uniques en quelques secondes.
+        </p>
 
-          <label className="label">Transformation Prompt</label>
-          <textarea 
-            value={prompt} 
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)} 
-            rows={5}
-            placeholder="Describe how you want to transform your image..."
-          />
+        {user ? (
+          <Link href="/dashboard" className="cta-button">
+            🚀 Accéder au Dashboard
+          </Link>
+        ) : (
+          <Link href="/signup" className="cta-button">
+            ✨ Commencer gratuitement
+          </Link>
+        )}
+      </div>
 
-          <button className="primary" type="submit" disabled={loading}>
-            {loading ? '⏳ Generating...' : '✨ Generate Image'}
-          </button>
-        </form>
-
-        <div className="output">
-          {!loading && !resultUrl && !error && (
-            <div className="placeholder">
-              <div className="placeholder-icon">🎨</div>
-              <p><strong>Your generated image will appear here</strong></p>
-              <p>Upload an image and enter a prompt to get started</p>
-            </div>
-          )}
-          
-          {loading && (
-            <div className="loading">
-              <div className="loading-spinner"></div>
-              <p><strong>AI is generating your image...</strong></p>
-              <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                This may take 30-60 seconds
-              </p>
-            </div>
-          )}
-          
-          {error && (
-            <div className="error">
-              <strong>❌ Error</strong>
-              <p style={{ marginTop: '0.5rem' }}>{error}</p>
-            </div>
-          )}
-          
-          {resultUrl && (
-            <div style={{ width: '100%', textAlign: 'center' }}>
-              <div className="success-badge">
-                ✓ Generation Complete
-              </div>
-              <div className="output-title">Generated Result</div>
-              <img src={resultUrl} alt="Generated" className="result" />
-            </div>
-          )}
+      <div className="features-grid">
+        <div className="feature-card">
+          <div className="feature-icon">🎨</div>
+          <h3>Transformations créatives</h3>
+          <p>Appliquez des styles uniques à vos images avec des prompts personnalisés</p>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">⚡</div>
+          <h3>Génération rapide</h3>
+          <p>Résultats en quelques secondes grâce à nos modèles IA optimisés</p>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">💾</div>
+          <h3>Stockage sécurisé</h3>
+          <p>Toutes vos créations sont sauvegardées et accessibles à tout moment</p>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">🔒</div>
+          <h3>Données privées</h3>
+          <p>Vos projets restent privés et ne sont visibles que par vous</p>
         </div>
       </div>
-    </>
+
+      <div className="cta-section">
+        <h2 className="cta-title">Prêt à créer ?</h2>
+        <p className="cta-text">
+          Rejoignez des milliers de créateurs qui utilisent notre plateforme
+        </p>
+        {user ? (
+          <Link href="/dashboard" className="cta-button secondary">
+            Continuer vers Dashboard →
+          </Link>
+        ) : (
+          <Link href="/signup" className="cta-button secondary">
+            Créer un compte gratuitement →
+          </Link>
+        )}
+      </div>
+    </div>
   )
 }

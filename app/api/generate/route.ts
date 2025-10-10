@@ -1,8 +1,35 @@
 import { supabaseServer } from '../../../lib/supabaseServer'
 import runReplicate from '../../../lib/replicateClient'
+import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 export async function POST(req: Request) {
   try {
+    // Get the access token from Authorization header
+    const authHeader = req.headers.get('Authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+      console.log('No authorization token provided')
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Verify the token with Supabase
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    
+    if (authError || !user) {
+      console.log('Invalid token:', authError?.message)
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    
+    const userId = user.id
+
     // Check if environment variables are configured
     if (!supabaseServer) {
       return new Response('Server configuration error: Supabase credentials missing', { status: 500 })
@@ -76,13 +103,14 @@ export async function POST(req: Request) {
 
     const outPublic = supabaseServer.storage.from('output-images').getPublicUrl(upOut.path).data.publicUrl
 
-    // Insert project row
+    // Insert project row with user_id
     const { error: insertErr } = await supabaseServer.from('projects').insert([
       {
         input_image_url: publicURL,
         output_image_url: outPublic,
         prompt,
-        status: 'completed'
+        status: 'completed',
+        user_id: userId
       }
     ])
 

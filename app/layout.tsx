@@ -1,5 +1,7 @@
 import React from 'react'
 import './globals.css'
+import { AuthProvider } from '../context/AuthContext'
+import Header from '../components/Header'
 
 export const metadata = {
   title: "Éditeur d'images IA",
@@ -10,10 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body>
-        <main className="container">
-          <h1 className="logo">Éditeur d'images IA</h1>
+        <AuthProvider>
+          <Header />
           {children}
-        </main>
+        </AuthProvider>
       </body>
     </html>
   )
