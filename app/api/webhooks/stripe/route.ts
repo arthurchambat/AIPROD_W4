@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
 
   // Créer un client Supabase avec service role (bypass RLS)
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     {
       auth: {
         autoRefreshToken: false,
