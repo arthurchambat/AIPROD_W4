@@ -32,30 +32,55 @@ export default function ImageGenerator({ onSuccess }: ImageGeneratorProps) {
       const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
       const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
       
-      const res = await fetch('/api/generate', { 
+      if (!token) {
+        throw new Error('Non authentifié')
+      }
+
+      // Étape 1 : Créer le projet avec status='pending'
+      const createRes = await fetch('/api/create-project', { 
         method: 'POST', 
         body: form,
         headers: {
-          'Authorization': token ? `Bearer ${token}` : ''
+          'Authorization': `Bearer ${token}`
         }
       })
 
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to generate image')
+      if (!createRes.ok) {
+        const data = await createRes.json()
+        throw new Error(data.error || 'Erreur lors de la création du projet')
       }
 
-      // Reset form
-      setFile(null)
-      setPrompt('Make the sheets in the style of the logo. Make the scene natural.')
+      const { projectId } = await createRes.json()
+      console.log('✅ Projet créé:', projectId)
+
+      // Étape 2 : Créer la session Stripe Checkout
+      const checkoutRes = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ projectId })
+      })
+
+      if (!checkoutRes.ok) {
+        const data = await checkoutRes.json()
+        throw new Error(data.error || 'Erreur lors de la création de la session de paiement')
+      }
+
+      const { url } = await checkoutRes.json()
       
-      // Call success callback
-      if (onSuccess) onSuccess()
+      // Étape 3 : Rediriger vers Stripe Checkout
+      if (url) {
+        window.location.href = url
+      } else {
+        throw new Error('URL de paiement manquante')
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to generate image')
-    } finally {
+      setError(err.message || 'Erreur lors de la génération')
       setLoading(false)
     }
+    // Ne pas mettre setLoading(false) ici car on redirige vers Stripe
   }
 
   return (
@@ -65,7 +90,7 @@ export default function ImageGenerator({ onSuccess }: ImageGeneratorProps) {
           <span>⚡</span> Nouvelle génération
         </CardTitle>
         <CardDescription>
-          Uploadez une image et décrivez la transformation désirée
+          Uploadez une image et payez 0,99€ pour la transformer
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -104,7 +129,7 @@ export default function ImageGenerator({ onSuccess }: ImageGeneratorProps) {
             disabled={loading}
             size="lg"
           >
-            {loading ? '⏳ Generating...' : '✨ Generate Image'}
+            {loading ? '⏳ Redirection...' : '💳 Générer (0,99€)'}
           </Button>
 
           {error && (
@@ -112,6 +137,10 @@ export default function ImageGenerator({ onSuccess }: ImageGeneratorProps) {
               {error}
             </div>
           )}
+
+          <p className="text-xs text-muted-foreground text-center">
+            Paiement sécurisé par Stripe
+          </p>
         </form>
       </CardContent>
     </Card>

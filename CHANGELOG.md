@@ -6,6 +6,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ### Ajouté ✨
 
+- **💳 Paiement Stripe** : Intégration complète du système de paiement
+  - Modèle "paiement à la génération" : 0,99€ par image
+  - Flow complet : Création projet → Paiement → Génération
+  - Webhook sécurisé avec vérification de signature
+  - États visuels : pending, paid, processing, completed
+  - Bouton "Générer (0,99€)" dans le dashboard
+  - Documentation complète dans `STRIPE_INTEGRATION.md` et `STRIPE_QUICKSTART.md`
+  - 4 nouvelles API routes : create-project, create-checkout-session, generate-image, webhooks/stripe
+  - Sécurité : vérification payment_status avant génération
+
 - **Google OAuth** : Authentification rapide via compte Google
   - Bouton "Continuer avec Google" dans AuthForm
   - Logo officiel Google intégré

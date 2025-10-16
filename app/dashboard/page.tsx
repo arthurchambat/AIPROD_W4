@@ -10,9 +10,12 @@ interface Project {
   id: string
   created_at: string
   input_image_url: string
-  output_image_url: string
+  output_image_url: string | null
   prompt: string
   status: string
+  payment_status: string
+  payment_amount: number
+  stripe_checkout_session_id: string | null
 }
 
 export default function DashboardPage() {
@@ -73,6 +76,40 @@ export default function DashboardPage() {
     }
   }
 
+  const handleGenerate = async (projectId: string) => {
+    try {
+      const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
+      const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
+      
+      if (!token) {
+        throw new Error('Non authentifié')
+      }
+
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ projectId })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Erreur lors de la génération')
+      }
+
+      const data = await res.json()
+      console.log('✅ Image générée:', data)
+      
+      // Rafraîchir la liste des projets
+      await fetchProjects()
+    } catch (err: any) {
+      console.error('Erreur génération:', err)
+      alert(err.message || 'Erreur lors de la génération')
+    }
+  }
+
   if (authLoading || !user) {
     return (
       <div className="container flex items-center justify-center min-h-[60vh]">
@@ -109,7 +146,8 @@ export default function DashboardPage() {
           <ProjectsGallery 
             projects={projects} 
             loading={loadingProjects} 
-            onDelete={handleDelete} 
+            onDelete={handleDelete}
+            onGenerate={handleGenerate}
           />
         </div>
       </div>
