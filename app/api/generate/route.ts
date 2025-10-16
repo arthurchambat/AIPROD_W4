@@ -83,9 +83,13 @@ export async function POST(req: Request) {
 
     // output could be string url or array; handle common shapes
     let generatedUrl: string | null = null
-    if (typeof output === 'string') generatedUrl = output
-    else if (Array.isArray(output) && output.length > 0) generatedUrl = output[0]
-    else if (output?.[0]) generatedUrl = output[0]
+    if (typeof output === 'string') {
+      generatedUrl = output
+    } else if (Array.isArray(output) && output.length > 0) {
+      generatedUrl = output[0] as string
+    } else if (output && typeof output === 'object' && 0 in output) {
+      generatedUrl = (output as any)[0]
+    }
 
     if (!generatedUrl) throw new Error('No generated image URL from Replicate')
 

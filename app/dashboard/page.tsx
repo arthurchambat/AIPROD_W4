@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation'
+import ImageGenerator from '@/components/features/ImageGenerator'
+import ProjectsGallery from '@/components/features/ProjectsGallery'
 
 interface Project {
   id: string
@@ -16,10 +18,6 @@ interface Project {
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [file, setFile] = useState<File | null>(null)
-  const [prompt, setPrompt] = useState('Make the sheets in the style of the logo. Make the scene natural.')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [loadingProjects, setLoadingProjects] = useState(true)
 
@@ -37,7 +35,6 @@ export default function DashboardPage() {
 
   const fetchProjects = async () => {
     try {
-      // Get the access token from localStorage (where Supabase stores it)
       const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
       const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
       
@@ -56,49 +53,10 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!file) return setError('Veuillez choisir une image')
-    setLoading(true)
-
-    const form = new FormData()
-    form.append('file', file)
-    form.append('prompt', prompt)
-
-    try {
-      // Get the access token from localStorage
-      const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
-      const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
-      
-      const res = await fetch('/api/generate', { 
-        method: 'POST', 
-        body: form,
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : ''
-        }
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`Server error (${res.status}): ${text}`)
-      }
-      const data = await res.json()
-      await fetchProjects() // Refresh projects
-      setFile(null)
-      setError(null)
-    } catch (err: any) {
-      console.error('Error:', err)
-      setError(err.message || 'Erreur de connexion')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer ce projet ?')) return
     
     try {
-      // Get auth token from localStorage
       const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
       const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
       
@@ -117,86 +75,43 @@ export default function DashboardPage() {
 
   if (authLoading || !user) {
     return (
-      <div className="container">
-        <div className="loading">
-          <div className="loading-spinner"></div>
-          <p>Chargement...</p>
+      <div className="container flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container">
-      <h1 className="logo">Dashboard</h1>
-      <p className="subtitle">Générez et gérez vos transformations d'images</p>
+    <div className="container py-8">
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 bg-clip-text text-transparent mb-2">
+          Dashboard
+        </h1>
+        <p className="text-muted-foreground">
+          Générez et gérez vos transformations d'images
+        </p>
+      </div>
 
-      <div className="dashboard-layout">
-        <section className="upload-section">
-          <div className="form">
-            <div className="form-title">
-              <span>⚡</span> Nouvelle génération
-            </div>
+      <div className="grid gap-8 lg:grid-cols-2">
+        <ImageGenerator onSuccess={fetchProjects} />
 
-            <label className="label">Image Upload</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFile(e.target.files ? e.target.files[0] : null)
-              }
-            />
-            {file && (
-              <p style={{ fontSize: '0.875rem', color: 'var(--accent-light)', marginTop: '0.5rem' }}>
-                ✓ {file.name}
-              </p>
-            )}
-
-            <label className="label">Transformation Prompt</label>
-            <textarea
-              value={prompt}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
-              rows={4}
-              placeholder="Describe how you want to transform your image..."
-            />
-
-            <button onClick={handleSubmit} className="primary" disabled={loading}>
-              {loading ? '⏳ Generating...' : '✨ Generate Image'}
-            </button>
-
-            {error && <div className="error" style={{ marginTop: '1rem' }}>{error}</div>}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Mes projets</h2>
+            <span className="text-sm text-muted-foreground">
+              {projects.length} projet{projects.length > 1 ? 's' : ''}
+            </span>
           </div>
-        </section>
 
-        <section className="projects-section">
-          <h2 className="section-title">Mes projets</h2>
-
-          {loadingProjects ? (
-            <div className="loading">
-              <div className="loading-spinner"></div>
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="placeholder">
-              <p>Aucun projet pour le moment</p>
-              <p style={{ fontSize: '0.875rem' }}>Commencez par uploader une image !</p>
-            </div>
-          ) : (
-            <div className="projects-grid">
-              {projects.map((project) => (
-                <div key={project.id} className="project-card">
-                  <img src={project.output_image_url} alt="Generated" className="project-image" />
-                  <div className="project-info">
-                    <p className="project-prompt">{project.prompt}</p>
-                    <p className="project-date">{new Date(project.created_at).toLocaleDateString('fr-FR')}</p>
-                  </div>
-                  <button onClick={() => handleDelete(project.id)} className="btn-delete">
-                    🗑️ Supprimer
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+          <ProjectsGallery 
+            projects={projects} 
+            loading={loadingProjects} 
+            onDelete={handleDelete} 
+          />
+        </div>
       </div>
     </div>
   )

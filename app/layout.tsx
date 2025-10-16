@@ -1,7 +1,7 @@
 import React from 'react'
 import './globals.css'
 import { AuthProvider } from '../context/AuthContext'
-import Header from '../components/Header'
+import Header from '@/components/layout/Header'
 
 export const metadata = {
   title: "Éditeur d'images IA",

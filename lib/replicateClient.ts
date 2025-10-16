@@ -1,10 +1,15 @@
-const REPLICATE_API = 'https://api.replicate.com/v1'
-const token = process.env.REPLICATE_API_TOKEN || ''
+import Replicate from 'replicate'
+
 const mockMode = process.env.REPLICATE_MOCK === 'true'
 
 async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
+
+// Initialize Replicate client
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN || '',
+})
 
 export async function runReplicate(modelIdentifier: string, input: any) {
   // Mock mode for testing without credits
@@ -15,54 +20,26 @@ export async function runReplicate(modelIdentifier: string, input: any) {
     return ['https://picsum.photos/800/600?random=' + Date.now()]
   }
 
-  if (!token) throw new Error('REPLICATE_API_TOKEN not set')
-  if (!modelIdentifier) throw new Error('REPLICATE_MODEL not set')
-
-  // If it's a model name (owner/model-name), get latest version first
-  let versionId = modelIdentifier
+  if (!process.env.REPLICATE_API_TOKEN) {
+    throw new Error('REPLICATE_API_TOKEN not set')
+  }
   
-  if (modelIdentifier.includes('/') && modelIdentifier.length < 100) {
-    // It's a model name, fetch the latest version
-    const modelRes = await fetch(`${REPLICATE_API}/models/${modelIdentifier}`, {
-      headers: { Authorization: `Token ${token}` }
-    })
-    if (!modelRes.ok) throw new Error(`Failed to fetch model: ${await modelRes.text()}`)
-    const modelData = await modelRes.json()
-    versionId = modelData.latest_version?.id
-    if (!versionId) throw new Error('No version found for model')
+  if (!modelIdentifier) {
+    throw new Error('REPLICATE_MODEL not set')
   }
 
-  const res = await fetch(`${REPLICATE_API}/predictions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Token ${token}`
-    },
-    body: JSON.stringify({ version: versionId, input })
-  })
+  try {
+    // Use the official Replicate SDK - it handles polling automatically
+    const output = await replicate.run(
+      modelIdentifier as `${string}/${string}:${string}`,
+      { input }
+    )
 
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Replicate create prediction failed: ${text}`)
+    return output
+  } catch (error: any) {
+    console.error('Replicate API error:', error)
+    throw new Error(`Replicate prediction failed: ${error.message || JSON.stringify(error)}`)
   }
-
-  const data = await res.json()
-  const id = data.id
-
-  // Poll until succeeded or failed
-  for (let i = 0; i < 60; i++) {
-    const poll = await fetch(`${REPLICATE_API}/predictions/${id}`, {
-      headers: { Authorization: `Token ${token}` }
-    })
-    if (!poll.ok) throw new Error(`Replicate poll failed: ${await poll.text()}`)
-    const pd = await poll.json()
-    if (pd.status === 'succeeded') return pd.output
-    if (pd.status === 'failed') throw new Error('Replicate prediction failed: ' + (pd.error || JSON.stringify(pd)))
-    // backoff
-    await sleep(1000 + i * 500)
-  }
-
-  throw new Error('Replicate prediction timeout')
 }
 
 export default runReplicate
