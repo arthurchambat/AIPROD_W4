@@ -1,6 +1,7 @@
 import { supabaseServer } from '../../../lib/supabaseServer'
 import runReplicate from '../../../lib/replicateClient'
-import { createClient } from '@supabase/supabase-js'
+// COMMENTÉ pour éviter le crash build Vercel - supabaseServer utilise lazy loading
+// import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createClient } from '@supabase/supabase-js'
+// COMMENTÉ pour éviter le crash build Vercel - supabaseServer utilise lazy loading
+// import { createClient } from '@supabase/supabase-js'
 import { supabaseServer } from '../../../../lib/supabaseServer'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -52,18 +53,27 @@ export async function DELETE(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    // Use service role to delete from storage
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-
-    // Delete images from storage
-    const inputFilename = project.input_image_url.split('/').pop()
-    const outputFilename = project.output_image_url.split('/').pop()
+    // Delete images from storage via REST API
+    const inputFilename = project.input_image_url?.split('/').pop()
+    const outputFilename = project.output_image_url?.split('/').pop()
 
     if (inputFilename) {
-      await supabaseAdmin.storage.from('input-images').remove([inputFilename])
+      await fetch(`${supabaseUrl}/storage/v1/object/input-images/${inputFilename}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'apikey': serviceRoleKey
+        }
+      })
     }
     if (outputFilename) {
-      await supabaseAdmin.storage.from('output-images').remove([outputFilename])
+      await fetch(`${supabaseUrl}/storage/v1/object/output-images/${outputFilename}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'apikey': serviceRoleKey
+        }
+      })
     }
 
     // Delete project from database
