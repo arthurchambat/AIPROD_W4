@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createSupabaseClient } from '@/lib/supabaseApi'
 import runReplicate from '@/lib/replicateClient'
 
 export const dynamic = 'force-dynamic'
@@ -15,23 +15,8 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
-    // Vérifier que les variables d'environnement Supabase sont définies
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      return NextResponse.json({ error: 'Configuration Supabase manquante' }, { status: 500 })
-    }
-    
-    // Utiliser le client Supabase avec le token utilisateur
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
-    )
+    // Créer le client Supabase avec le token utilisateur
+    const supabase = createSupabaseClient(token)
 
     // Vérifier l'authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser()
