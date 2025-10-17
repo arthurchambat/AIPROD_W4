@@ -36,16 +36,43 @@ function getClient() {
   }
   
   // Import dynamique pour éviter l'évaluation au build
-  const { createClient } = require('@supabase/supabase-js')
-  
-  _client = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
+  // Utiliser eval() pour complètement cacher le require de Webpack
+  try {
+    // eslint-disable-next-line no-eval
+    const createClient = eval('require')('@supabase/supabase-js').createClient
+    
+    _client = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+    
+    return _client
+  } catch (error) {
+    console.error('Failed to load Supabase SDK:', error)
+    // Retourner le mock si le SDK ne peut pas être chargé
+    return {
+      auth: { getUser: async () => ({ data: { user: null }, error: new Error('SDK not available') }) },
+      from: () => ({ 
+        select: () => ({ 
+          eq: () => ({ 
+            single: async () => ({ data: null, error: new Error('SDK not available') }),
+            eq: () => ({ single: async () => ({ data: null, error: new Error('SDK not available') }) })
+          }) 
+        }),
+        insert: async () => ({ data: null, error: new Error('SDK not available') }),
+        update: () => ({ eq: async () => ({ data: null, error: new Error('SDK not available') }) }),
+        delete: () => ({ eq: async () => ({ data: null, error: new Error('SDK not available') }) })
+      }),
+      storage: { 
+        from: () => ({ 
+          upload: async () => ({ data: null, error: new Error('SDK not available') }), 
+          getPublicUrl: () => ({ data: { publicUrl: '' } }) 
+        }) 
+      }
     }
-  })
-  
-  return _client
+  }
 }
 
 // Export une fonction qui retourne le client au lieu du client directement
