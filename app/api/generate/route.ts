@@ -3,6 +3,8 @@ import runReplicate from '../../../lib/replicateClient'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
   try {
     // Get the access token from Authorization header

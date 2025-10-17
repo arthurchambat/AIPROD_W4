@@ -6,6 +6,8 @@ import { supabaseServer } from '../../../../lib/supabaseServer'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
+export const dynamic = 'force-dynamic'
+
 export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
