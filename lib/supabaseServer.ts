@@ -6,21 +6,33 @@ let _client: any = null
 function getClient() {
   if (_client) return _client
   
-  // Pendant le build, retourner un mock au lieu de crasher
-  if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'test') {
-    console.log('⚠️  Build phase detected, returning mock Supabase client')
-    return {
-      auth: { getUser: async () => ({ data: { user: null }, error: new Error('Build mock') }) },
-      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: null, error: new Error('Build mock') }) }) }) }),
-      storage: { from: () => ({ upload: async () => ({ data: null, error: new Error('Build mock') }), getPublicUrl: () => ({ data: { publicUrl: '' } }) }) }
-    }
-  }
-  
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return null
+  // Si pas de credentials, retourner un mock
+  if (!supabaseUrl || !supabaseServiceKey || 
+      supabaseUrl.includes('placeholder') || supabaseServiceKey.includes('placeholder')) {
+    console.log('⚠️  No valid credentials, returning mock Supabase client')
+    return {
+      auth: { getUser: async () => ({ data: { user: null }, error: new Error('No credentials') }) },
+      from: () => ({ 
+        select: () => ({ 
+          eq: () => ({ 
+            single: async () => ({ data: null, error: new Error('No credentials') }),
+            eq: () => ({ single: async () => ({ data: null, error: new Error('No credentials') }) })
+          }) 
+        }),
+        insert: async () => ({ data: null, error: new Error('No credentials') }),
+        update: () => ({ eq: async () => ({ data: null, error: new Error('No credentials') }) }),
+        delete: () => ({ eq: async () => ({ data: null, error: new Error('No credentials') }) })
+      }),
+      storage: { 
+        from: () => ({ 
+          upload: async () => ({ data: null, error: new Error('No credentials') }), 
+          getPublicUrl: () => ({ data: { publicUrl: '' } }) 
+        }) 
+      }
+    }
   }
   
   // Import dynamique pour éviter l'évaluation au build
