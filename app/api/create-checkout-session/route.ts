@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, PRICE_PER_GENERATION } from '@/lib/stripe'
+import { supabaseAuth, supabaseQuery } from '@/lib/supabase-fetch'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const dynamicParams = true
-export const revalidate = 0
-
-// Empêcher l'évaluation pendant le build en détectant l'environnement
-const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build'
 
 export async function POST(request: NextRequest) {
-  // Si on est pendant le build, retourner immédiatement une erreur simulée
-  if (isBuildTime) {
-    return NextResponse.json({ error: 'Build time' }, { status: 503 })
-  }
   try {
     // Vérifier l'authentification via Authorization header
     const authHeader = request.headers.get('Authorization')
@@ -24,12 +16,9 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
-    // Import du helper en pur JS (pas bundlé par Webpack)
-    const { createSupabaseClient } = require('@/lib/supabase-runtime')
-    const supabase = createSupabaseClient(token)
-
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Vérifier l'authentification avec Supabase via fetch
+    const { data: userData, error: authError } = await supabaseAuth(token)
+    const user = userData?.user
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
@@ -44,12 +33,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que le projet appartient à l'utilisateur
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .single()
+    const { data: projects, error: projectError } = await supabaseQuery(
+      'projects',
+      'select',
+      undefined,
+      { id: projectId, user_id: user.id },
+      token
+    )
+
+    const project = Array.isArray(projects) ? projects[0] : projects
 
     if (projectError || !project) {
       return NextResponse.json({ error: 'Projet non trouvé ou accès refusé' }, { status: 404 })
@@ -88,14 +80,18 @@ export async function POST(request: NextRequest) {
     })
 
     // Mettre à jour le projet avec le stripe_checkout_session_id
-    const { error: updateError } = await supabase
-      .from('projects')
-      .update({
-        stripe_checkout_session_id: session.id,
-        payment_amount: PRICE_PER_GENERATION / 100, // Stocker en euros
-      })
-      .eq('id', projectId)
-      .eq('user_id', user.id)
+    const updateData = {
+      stripe_checkout_session_id: session.id,
+      payment_amount: PRICE_PER_GENERATION / 100, // Stocker en euros
+    }
+    
+    const { error: updateError } = await supabaseQuery(
+      'projects',
+      'update',
+      updateData,
+      { id: projectId, user_id: user.id },
+      token
+    )
 
     if (updateError) {
       console.error('Erreur lors de la mise à jour du projet:', updateError)
