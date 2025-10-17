@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, PRICE_PER_GENERATION } from '@/lib/stripe'
 
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+export const revalidate = 0
 
 export async function POST(request: NextRequest) {
   try {
