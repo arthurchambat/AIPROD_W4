@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseClient } from '@/lib/supabase-lazy'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +13,8 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
-    // Créer le client Supabase avec lazy loading
+    // Import du helper en pur JS (pas bundlé par Webpack)
+    const { createSupabaseClient } = require('@/lib/supabase-runtime')
     const supabase = createSupabaseClient(token)
 
     // Vérifier l'authentification

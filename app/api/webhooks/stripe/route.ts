@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
-import { createSupabaseServiceClient } from '@/lib/supabase-lazy'
 
 // IMPORTANT : Désactiver le body parsing par Next.js pour les webhooks Stripe
 export const runtime = 'nodejs'
@@ -30,7 +29,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
   }
 
-  // Créer un client Supabase avec service role (lazy loaded)
+  // Import du helper en pur JS (pas bundlé par Webpack)
+  const { createSupabaseServiceClient } = require('@/lib/supabase-runtime')
   const supabase = createSupabaseServiceClient()
 
   // Traiter l'événement
