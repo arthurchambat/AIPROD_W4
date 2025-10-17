@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServiceClient } from '@/lib/supabaseApi'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
 
@@ -30,8 +29,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
   }
 
+  // Import dynamique pour éviter l'évaluation au build
+  const { createClient } = await import('@supabase/supabase-js')
+  
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'Configuration manquante' }, { status: 500 })
+  }
+
   // Créer un client Supabase avec service role (bypass RLS)
-  const supabase = createSupabaseServiceClient()
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  )
 
   // Traiter l'événement
   try {
