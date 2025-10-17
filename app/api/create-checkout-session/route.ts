@@ -6,7 +6,14 @@ export const dynamic = 'force-dynamic'
 export const dynamicParams = true
 export const revalidate = 0
 
+// Empêcher l'évaluation pendant le build en détectant l'environnement
+const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build'
+
 export async function POST(request: NextRequest) {
+  // Si on est pendant le build, retourner immédiatement une erreur simulée
+  if (isBuildTime) {
+    return NextResponse.json({ error: 'Build time' }, { status: 503 })
+  }
   try {
     // Vérifier l'authentification via Authorization header
     const authHeader = request.headers.get('Authorization')
