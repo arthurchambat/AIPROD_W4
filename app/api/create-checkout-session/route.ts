@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, PRICE_PER_GENERATION } from '@/lib/stripe'
+import { createSupabaseClient } from '@/lib/supabase-lazy'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,25 +18,8 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
-    // Import dynamique pour éviter l'évaluation au build
-    const { createClient } = await import('@supabase/supabase-js')
-    
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      return NextResponse.json({ error: 'Configuration manquante' }, { status: 500 })
-    }
-    
-    // Créer le client Supabase avec le token utilisateur
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
-    )
+    // Créer le client Supabase avec lazy loading
+    const supabase = createSupabaseClient(token)
 
     // Vérifier l'authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser()
