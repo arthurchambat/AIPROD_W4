@@ -14,10 +14,15 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
+    // Vérifier que les variables d'environnement Supabase sont définies
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return NextResponse.json({ error: 'Configuration Supabase manquante' }, { status: 500 })
+    }
+    
     // Utiliser le client Supabase avec le token utilisateur
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         global: {
           headers: {
