@@ -1,15 +1,38 @@
-import { createClient } from '@supabase/supabase-js'
+// Ne PAS importer @supabase/supabase-js au top-level car ça crash le build Vercel
+// Utiliser un lazy loading à la place
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+let _client: any = null
 
-// Server-side client with service role key (bypasses RLS)
-// Only create client if env vars are available (for build-time safety)
-export const supabaseServer = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-  : null as any
+function getClient() {
+  if (_client) return _client
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null
+  }
+  
+  // Import dynamique pour éviter l'évaluation au build
+  const { createClient } = require('@supabase/supabase-js')
+  
+  _client = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+  
+  return _client
+}
+
+// Export une fonction qui retourne le client au lieu du client directement
+export const supabaseServer = new Proxy({} as any, {
+  get(target, prop) {
+    const client = getClient()
+    if (!client) {
+      throw new Error('Supabase client not available')
+    }
+    return client[prop]
+  }
+})

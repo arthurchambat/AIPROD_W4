@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import runReplicate from '@/lib/replicateClient'
+import { supabaseAuth } from '@/lib/supabase-fetch'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,12 +15,8 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
-    // Import du helper en pur JS (pas bundlé par Webpack)
-    const { createSupabaseClient } = require('@/lib/supabase-runtime')
-    const supabase = createSupabaseClient(token)
-
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Vérifier l'authentification via REST API
+    const { data: user, error: authError } = await supabaseAuth(token)
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
@@ -32,13 +29,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Project ID manquant' }, { status: 400 })
     }
 
+    // Import du helper pour les requêtes
+    const { supabaseQuery, supabaseServiceQuery } = await import('@/lib/supabase-fetch')
+
     // Récupérer le projet et vérifier qu'il appartient à l'utilisateur
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .single()
+    const { data: projects, error: projectError } = await supabaseQuery(
+      'projects',
+      'select',
+      {},
+      { id: `eq.${projectId}`, user_id: `eq.${(user as any).id}` },
+      token
+    )
+
+    const project = projects?.[0]
 
     if (projectError || !project) {
       return NextResponse.json({ error: 'Projet non trouvé' }, { status: 404 })
@@ -61,10 +64,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Mettre à jour le statut en 'processing'
-    await supabase
-      .from('projects')
-      .update({ status: 'processing' })
-      .eq('id', projectId)
+    await supabaseServiceQuery(
+      'projects',
+      'update',
+      { status: 'processing' },
+      { id: `eq.${projectId}` }
+    )
 
     console.log('🎨 Début de la génération pour projet:', projectId)
 
@@ -101,36 +106,46 @@ export async function POST(request: NextRequest) {
     const blob = await res.arrayBuffer()
     const outBuffer = Buffer.from(blob)
 
-    // Upload vers Supabase Storage
+    // Upload vers Supabase Storage via REST API
     const outName = `output-${Date.now()}.png`
-    const { data: upOut, error: outErr } = await supabase.storage
-      .from('output-images')
-      .upload(outName, outBuffer, { contentType: 'image/png' })
+    const uploadResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/output-images/${outName}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+          'Content-Type': 'image/png'
+        },
+        body: outBuffer
+      }
+    )
 
-    if (outErr) {
-      console.error('Erreur upload output:', outErr)
-      throw outErr
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text()
+      console.error('Erreur upload output:', errorText)
+      throw new Error(`Upload failed: ${errorText}`)
     }
 
-    const outPublic = supabase.storage
-      .from('output-images')
-      .getPublicUrl(upOut.path).data.publicUrl
+    const outPublic = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/output-images/${outName}`
 
     // Mettre à jour le projet avec l'image générée
-    const { data: updatedProject, error: updateError } = await supabase
-      .from('projects')
-      .update({
+    const { data: updatedProjects, error: updateError } = await supabaseServiceQuery(
+      'projects',
+      'update',
+      {
         output_image_url: outPublic,
         status: 'completed'
-      })
-      .eq('id', projectId)
-      .select()
-      .single()
+      },
+      { id: `eq.${projectId}` }
+    )
 
     if (updateError) {
       console.error('Erreur mise à jour projet:', updateError)
       throw updateError
     }
+
+    const updatedProject = updatedProjects?.[0]
 
     console.log('✅ Projet complété:', projectId)
 

@@ -13,8 +13,8 @@ export async function supabaseAuth(token: string) {
     return { data: null, error: new Error('Unauthorized') }
   }
   
-  const data = await response.json()
-  return { data: { user: data }, error: null }
+  const userData = await response.json()
+  return { data: userData, error: null }
 }
 
 export async function supabaseQuery(

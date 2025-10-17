@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
+import { supabaseServiceQuery } from '@/lib/supabase-fetch'
 
 // IMPORTANT : Désactiver le body parsing par Next.js pour les webhooks Stripe
 export const runtime = 'nodejs'
@@ -29,9 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
   }
 
-  // Import du helper en pur JS (pas bundlé par Webpack)
-  const { createSupabaseServiceClient } = require('@/lib/supabase-runtime')
-  const supabase = createSupabaseServiceClient()
+  // Pas besoin de client Supabase, on utilise des requêtes REST directes
 
   // Traiter l'événement
   try {
@@ -54,16 +53,17 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'project_id manquant' }, { status: 400 })
         }
 
-        // Mettre à jour le projet dans Supabase
-        const { data, error } = await supabase
-          .from('projects')
-          .update({
+        // Mettre à jour le projet dans Supabase via REST API
+        const { data, error } = await supabaseServiceQuery(
+          'projects',
+          'update',
+          {
             payment_status: 'paid',
             stripe_checkout_session_id: session.id,
             stripe_payment_intent_id: session.payment_intent as string,
-          })
-          .eq('id', projectId)
-          .select()
+          },
+          { id: `eq.${projectId}` }
+        )
 
         if (error) {
           console.error('❌ Erreur lors de la mise à jour du projet:', error)
@@ -82,10 +82,12 @@ export async function POST(request: NextRequest) {
 
         if (projectId) {
           // Optionnel : mettre à jour le statut en 'expired' ou 'cancelled'
-          await supabase
-            .from('projects')
-            .update({ payment_status: 'cancelled' })
-            .eq('id', projectId)
+          await supabaseServiceQuery(
+            'projects',
+            'update',
+            { payment_status: 'cancelled' },
+            { id: `eq.${projectId}` }
+          )
         }
         break
       }
