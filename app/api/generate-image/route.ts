@@ -119,29 +119,44 @@ export async function POST(request: NextRequest) {
       const blob = await res.arrayBuffer()
       outBuffer = Buffer.from(blob)
     } else if (Array.isArray(output) && output.length > 0) {
-      const firstItem = output[0]
+      // Vérifier si tous les éléments sont des Uint8Array/Buffer (chunks à concaténer)
+      const allAreBuffers = output.every(item => 
+        Buffer.isBuffer(item) || item instanceof Uint8Array
+      )
       
-      // Vérifier si c'est déjà des bytes (Buffer, Uint8Array, ou array de nombres)
-      if (Buffer.isBuffer(firstItem)) {
-        console.log('✅ [GENERATE-IMAGE] Output is Buffer, using directly')
-        outBuffer = firstItem
-      } else if (firstItem instanceof Uint8Array) {
-        console.log('✅ [GENERATE-IMAGE] Output is Uint8Array, converting to Buffer')
-        outBuffer = Buffer.from(firstItem)
-      } else if (typeof firstItem === 'string') {
-        // C'est une URL
-        console.log('📥 [GENERATE-IMAGE] Downloading from URL:', firstItem)
-        const res = await fetch(firstItem)
-        const blob = await res.arrayBuffer()
-        outBuffer = Buffer.from(blob)
+      if (allAreBuffers) {
+        console.log(`✅ [GENERATE-IMAGE] Concatenating ${output.length} chunks...`)
+        // Concaténer tous les chunks
+        const chunks = output.map(chunk => 
+          Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+        )
+        outBuffer = Buffer.concat(chunks)
+        console.log('✅ [GENERATE-IMAGE] Concatenated size:', outBuffer.length, 'bytes')
       } else {
-        throw new Error('Format de sortie Replicate non reconnu')
+        // Sinon, essayer le premier élément (URL ou buffer unique)
+        const firstItem = output[0]
+        
+        if (Buffer.isBuffer(firstItem)) {
+          console.log('✅ [GENERATE-IMAGE] Output is Buffer, using directly')
+          outBuffer = firstItem
+        } else if (firstItem instanceof Uint8Array) {
+          console.log('✅ [GENERATE-IMAGE] Output is Uint8Array, converting to Buffer')
+          outBuffer = Buffer.from(firstItem)
+        } else if (typeof firstItem === 'string') {
+          // C'est une URL
+          console.log('📥 [GENERATE-IMAGE] Downloading from URL:', firstItem)
+          const res = await fetch(firstItem)
+          const blob = await res.arrayBuffer()
+          outBuffer = Buffer.from(blob)
+        } else {
+          throw new Error('Format de sortie Replicate non reconnu')
+        }
       }
     } else {
       throw new Error('Aucune image générée par Replicate')
     }
 
-    console.log('✅ [GENERATE-IMAGE] Image ready, size:', outBuffer.length, 'bytes')
+    console.log('✅ [GENERATE-IMAGE] Image ready, final size:', outBuffer.length, 'bytes')
 
     // Upload vers Supabase Storage via REST API
     const outName = `output-${Date.now()}.png`
