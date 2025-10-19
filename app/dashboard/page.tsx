@@ -36,6 +36,37 @@ export default function DashboardPage() {
     }
   }, [user])
 
+  // Auto-refresh toutes les 3 secondes s'il y a des projets en cours
+  useEffect(() => {
+    if (!user) return
+    
+    const hasProcessingProjects = projects.some(
+      p => p.status === 'processing' || p.status === 'pending'
+    )
+    
+    if (!hasProcessingProjects) return
+    
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refresh des projets en cours...')
+      fetchProjects()
+    }, 3000) // 3 secondes
+    
+    return () => clearInterval(interval)
+  }, [projects, user])
+
+  // Refresh au retour de Stripe (détection du query param)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.has('session_id') || urlParams.has('canceled')) {
+        console.log('🔄 Retour de Stripe détecté, refresh...')
+        fetchProjects()
+        // Nettoyer l'URL
+        window.history.replaceState({}, '', '/dashboard')
+      }
+    }
+  }, [])
+
   const fetchProjects = async () => {
     try {
       const token = session?.access_token
@@ -61,16 +92,28 @@ export default function DashboardPage() {
     try {
       const token = session?.access_token
       
+      // Suppression optimiste : retirer immédiatement de l'UI
+      setProjects(prev => prev.filter(p => p.id !== id))
+      
       const res = await fetch(`/api/projects/${id}`, { 
         method: 'DELETE',
         headers: {
           'Authorization': token ? `Bearer ${token}` : ''
         }
       })
-      if (!res.ok) throw new Error('Failed to delete')
+      
+      if (!res.ok) {
+        // Si échec, recharger pour restaurer l'état correct
+        await fetchProjects()
+        throw new Error('Failed to delete')
+      }
+      
+      // Recharger pour être sûr
       await fetchProjects()
     } catch (err: any) {
       alert('Erreur lors de la suppression')
+      // Recharger en cas d'erreur
+      await fetchProjects()
     }
   }
 
@@ -81,6 +124,11 @@ export default function DashboardPage() {
       if (!token) {
         throw new Error('Non authentifié')
       }
+
+      // Mettre à jour immédiatement le statut dans l'UI
+      setProjects(prev => prev.map(p => 
+        p.id === projectId ? { ...p, status: 'processing' } : p
+      ))
 
       const res = await fetch('/api/generate-image', {
         method: 'POST',
@@ -99,11 +147,13 @@ export default function DashboardPage() {
       const data = await res.json()
       console.log('✅ Image générée:', data)
       
-      // Rafraîchir la liste des projets
+      // Rafraîchir immédiatement
       await fetchProjects()
     } catch (err: any) {
       console.error('Erreur génération:', err)
       alert(err.message || 'Erreur lors de la génération')
+      // Rafraîchir en cas d'erreur pour restaurer l'état
+      await fetchProjects()
     }
   }
 
