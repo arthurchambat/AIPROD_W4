@@ -32,9 +32,9 @@ export async function runReplicate(modelIdentifier: string, input: any) {
     console.log('🔵 [REPLICATE] Starting prediction with model:', modelIdentifier)
     console.log('🔵 [REPLICATE] Input:', JSON.stringify(input, null, 2))
     
-    // Utiliser replicate.run qui gère automatiquement le polling
+    // Utiliser replicate.run - supporte owner/name ou owner/name:version
     let output = await replicate.run(
-      modelIdentifier as `${string}/${string}:${string}`,
+      modelIdentifier as any,
       { input }
     )
     

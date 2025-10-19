@@ -89,14 +89,10 @@ export async function POST(request: NextRequest) {
 
     console.log('🎨 Début de la génération pour projet:', projectId)
 
-    // Préparer l'input pour Replicate SDXL
+    // Préparer l'input pour Replicate google/nano-banana
     const input = {
       prompt: project.prompt,
-      image: project.input_image_url,
-      // Options pour améliorer la qualité
-      num_outputs: 1,
-      guidance_scale: 7.5,
-      num_inference_steps: 50
+      image_input: [project.input_image_url]  // nano-banana attend un tableau d'URLs
     }
 
     console.log('Calling Replicate with:', JSON.stringify(input, null, 2))
