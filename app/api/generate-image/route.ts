@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
           'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY || '',
           'Content-Type': 'image/png'
         },
-        body: outBuffer
+        body: outBuffer.buffer as ArrayBuffer
       }
     )
 
