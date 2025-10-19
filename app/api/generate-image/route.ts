@@ -18,7 +18,10 @@ export async function POST(request: NextRequest) {
     // Vérifier l'authentification via REST API
     const { data: user, error: authError } = await supabaseAuth(token)
     
+    console.log('Auth debug:', { user, authError, hasUser: !!user })
+    
     if (authError || !user) {
+      console.error('Auth failed:', authError)
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 

@@ -23,10 +23,16 @@ export async function supabaseQuery(
 ) {
   const url = new URL(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/${table}`)
   
-  if (operation === 'select' && filters) {
+  if (filters) {
     Object.entries(filters).forEach(([key, value]) => {
-      url.searchParams.append(key, `eq.${value}`)
+      // Si la valeur commence par "eq.", "lt.", etc., on l'utilise directement
+      url.searchParams.append(key, value)
     })
+  }
+  
+  // Tri par défaut par created_at descendant pour les projets
+  if (operation === 'select' && table === 'projects') {
+    url.searchParams.append('order', 'created_at.desc')
   }
   
   const headers: Record<string, string> = {

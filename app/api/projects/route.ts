@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { supabaseServer } from '../../../lib/supabaseServer'
+import { supabaseAuth, supabaseQuery } from '../../../lib/supabase-fetch'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,8 +18,8 @@ export async function GET(req: Request) {
       })
     }
 
-    // Verify the token with Supabase
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token)
+    // Verify the token with Supabase via REST API
+    const { data: user, error: authError } = await supabaseAuth(token)
     
     if (authError || !user) {
       console.log('Invalid token:', authError?.message)
@@ -31,12 +31,14 @@ export async function GET(req: Request) {
     
     const userId = user.id
 
-    // Fetch user's projects
-    const { data: projects, error: dbError } = await supabaseServer
-      .from('projects')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    // Fetch user's projects via REST API
+    const { data: projects, error: dbError } = await supabaseQuery(
+      'projects',
+      'select',
+      {},
+      { user_id: `eq.${userId}` },
+      token
+    )
 
     if (dbError) {
       console.error('Database error:', dbError)
