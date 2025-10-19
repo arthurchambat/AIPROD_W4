@@ -73,9 +73,15 @@ export async function supabaseServiceQuery(
 ) {
   const url = new URL(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/${table}`)
   
-  if (operation === 'select' && filters) {
+  // Pour SELECT, UPDATE et DELETE, ajouter les filtres à l'URL
+  if (filters && (operation === 'select' || operation === 'update' || operation === 'delete')) {
     Object.entries(filters).forEach(([key, value]) => {
-      url.searchParams.append(key, `eq.${value}`)
+      // Si la valeur commence déjà par "eq.", "lt.", etc., l'utiliser directement
+      if (typeof value === 'string' && value.match(/^(eq|neq|gt|gte|lt|lte|like|ilike|is|in|cs|cd|sl|sr|nxl|nxr|adj|ov|fts|plfts|phfts|wfts)\./)) {
+        url.searchParams.append(key, value)
+      } else {
+        url.searchParams.append(key, `eq.${value}`)
+      }
     })
   }
   
