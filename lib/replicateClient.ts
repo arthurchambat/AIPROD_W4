@@ -29,15 +29,28 @@ export async function runReplicate(modelIdentifier: string, input: any) {
   }
 
   try {
-    // Use the official Replicate SDK - it handles polling automatically
-    const output = await replicate.run(
-      modelIdentifier as `${string}/${string}:${string}`,
-      { input }
-    )
-
-    return output
+    console.log('🔵 [REPLICATE] Starting prediction with model:', modelIdentifier)
+    console.log('🔵 [REPLICATE] Input:', JSON.stringify(input, null, 2))
+    
+    // Nouvelle méthode : utiliser predictions.create puis wait
+    const prediction = await replicate.predictions.create({
+      version: modelIdentifier.split(':')[1], // Extraire le hash de version
+      input: input
+    })
+    
+    console.log('🔵 [REPLICATE] Prediction created:', prediction.id)
+    console.log('🔵 [REPLICATE] Status:', prediction.status)
+    
+    // Attendre que la prédiction soit complète
+    const finalPrediction = await replicate.wait(prediction)
+    
+    console.log('🔵 [REPLICATE] Final status:', finalPrediction.status)
+    console.log('🔵 [REPLICATE] Output type:', typeof finalPrediction.output)
+    console.log('🔵 [REPLICATE] Output:', JSON.stringify(finalPrediction.output))
+    
+    return finalPrediction.output
   } catch (error: any) {
-    console.error('Replicate API error:', error)
+    console.error('❌ [REPLICATE] API error:', error)
     throw new Error(`Replicate prediction failed: ${error.message || JSON.stringify(error)}`)
   }
 }
