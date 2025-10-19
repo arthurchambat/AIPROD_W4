@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import runReplicate from '@/lib/replicateClient'
-import { supabaseAuth } from '@/lib/supabase-fetch'
+import { supabaseAuth, supabaseQuery, supabaseServiceQuery } from '@/lib/supabase-fetch'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,9 +31,6 @@ export async function POST(request: NextRequest) {
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID manquant' }, { status: 400 })
     }
-
-    // Import du helper pour les requêtes
-    const { supabaseQuery, supabaseServiceQuery } = await import('@/lib/supabase-fetch')
 
     // Récupérer le projet et vérifier qu'il appartient à l'utilisateur
     const { data: projects, error: projectError } = await supabaseQuery(
