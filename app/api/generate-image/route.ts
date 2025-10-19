@@ -6,32 +6,39 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 [GENERATE-IMAGE] Starting...')
+    
     // Vérifier l'authentification via Authorization header
     const authHeader = request.headers.get('Authorization')
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('❌ [GENERATE-IMAGE] No auth header')
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
     const token = authHeader.substring(7)
+    console.log('🔑 [GENERATE-IMAGE] Token extracted')
     
     // Vérifier l'authentification via REST API
     const { data: user, error: authError } = await supabaseAuth(token)
     
-    console.log('Auth debug:', { user, authError, hasUser: !!user })
+    console.log('👤 [GENERATE-IMAGE] Auth result:', { hasUser: !!user, authError: authError?.message })
     
     if (authError || !user) {
-      console.error('Auth failed:', authError)
+      console.error('❌ [GENERATE-IMAGE] Auth failed:', authError)
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
     const body = await request.json()
     const { projectId } = body
+    console.log('📋 [GENERATE-IMAGE] ProjectId:', projectId)
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID manquant' }, { status: 400 })
     }
 
+    console.log('🔍 [GENERATE-IMAGE] Fetching project...')
+    
     // Récupérer le projet et vérifier qu'il appartient à l'utilisateur
     const { data: projects, error: projectError } = await supabaseQuery(
       'projects',
@@ -41,11 +48,20 @@ export async function POST(request: NextRequest) {
       token
     )
 
+    console.log('📦 [GENERATE-IMAGE] Project query result:', { 
+      hasProjects: !!projects, 
+      projectCount: projects?.length,
+      projectError: projectError?.message 
+    })
+
     const project = projects?.[0]
 
     if (projectError || !project) {
+      console.log('❌ [GENERATE-IMAGE] Project not found')
       return NextResponse.json({ error: 'Projet non trouvé' }, { status: 404 })
     }
+
+    console.log('✅ [GENERATE-IMAGE] Project found, payment_status:', project.payment_status)
 
     // ⚠️ SÉCURITÉ CRITIQUE : Vérifier que le paiement a été effectué
     if (project.payment_status !== 'paid') {
@@ -155,7 +171,8 @@ export async function POST(request: NextRequest) {
       project: updatedProject
     })
   } catch (error: any) {
-    console.error('❌ Erreur lors de la génération:', error)
+    console.error('❌ [GENERATE-IMAGE] ERROR:', error)
+    console.error('❌ [GENERATE-IMAGE] Stack:', error?.stack)
     return NextResponse.json(
       { error: error.message || 'Erreur lors de la génération' },
       { status: 500 }

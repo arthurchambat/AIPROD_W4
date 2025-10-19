@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAuth, supabaseQuery } from '@/lib/supabase-fetch'
+import { supabaseAuth, supabaseServiceQuery } from '@/lib/supabase-fetch'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,13 +49,14 @@ export async function POST(request: NextRequest) {
 
     const fileName = `input-${Date.now()}-${sanitized}`
     
+    // Upload avec SERVICE ROLE pour bypass RLS
     const uploadResponse = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/input-images/${fileName}`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY || '',
           'Content-Type': file.type
         },
         body: buffer
@@ -70,11 +71,9 @@ export async function POST(request: NextRequest) {
 
     const publicURL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/input-images/${fileName}`
 
-    // Import du helper pour les requêtes
-    const { supabaseQuery } = await import('@/lib/supabase-fetch')
-
     // Créer le projet avec status='pending' et payment_status='pending'
-    const { data: projects, error: insertError } = await supabaseQuery(
+    // Utiliser SERVICE ROLE pour bypass RLS (on a déjà vérifié l'auth)
+    const { data: projects, error: insertError } = await supabaseServiceQuery(
       'projects',
       'insert',
       {
@@ -86,8 +85,7 @@ export async function POST(request: NextRequest) {
         payment_amount: 0.99, // Prix fixé côté serveur
         user_id: user.id
       },
-      {},
-      token
+      {}
     )
 
     const project = projects?.[0]

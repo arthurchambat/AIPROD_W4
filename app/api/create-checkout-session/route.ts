@@ -37,13 +37,21 @@ export async function POST(request: NextRequest) {
       'projects',
       'select',
       undefined,
-      { id: projectId, user_id: user.id },
+      { id: `eq.${projectId}`, user_id: `eq.${user.id}` },
       token
     )
 
     const project = Array.isArray(projects) ? projects[0] : projects
 
+    console.log('Checkout-session project lookup:', { 
+      projectId, 
+      userId: user.id, 
+      found: !!project,
+      projectError: projectError?.message 
+    })
+
     if (projectError || !project) {
+      console.error('Project not found:', { projectId, userId: user.id, projectError })
       return NextResponse.json({ error: 'Projet non trouvé ou accès refusé' }, { status: 404 })
     }
 
@@ -89,7 +97,7 @@ export async function POST(request: NextRequest) {
       'projects',
       'update',
       updateData,
-      { id: projectId, user_id: user.id },
+      { id: `eq.${projectId}`, user_id: `eq.${user.id}` },
       token
     )
 
