@@ -1,6 +1,3 @@
-// Helper pour appeler l'API Supabase directement via fetch (sans SDK)
-// Cela évite les problèmes de build avec @supabase/supabase-js
-
 export async function supabaseAuth(token: string) {
   const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
     headers: {

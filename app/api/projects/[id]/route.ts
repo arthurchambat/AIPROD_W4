@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-// COMMENTÉ pour éviter le crash build Vercel - supabaseServer utilise lazy loading
-// import { createClient } from '@supabase/supabase-js'
 import { supabaseServer } from '../../../../lib/supabaseServer'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''

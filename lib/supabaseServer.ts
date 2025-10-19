@@ -1,6 +1,3 @@
-// Ne PAS importer @supabase/supabase-js au top-level car ça crash le build Vercel
-// Utiliser un lazy loading à la place
-
 let _client: any = null
 
 function getClient() {
@@ -9,10 +6,8 @@ function getClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   
-  // Si pas de credentials, retourner un mock
   if (!supabaseUrl || !supabaseServiceKey || 
       supabaseUrl.includes('placeholder') || supabaseServiceKey.includes('placeholder')) {
-    console.log('⚠️  No valid credentials, returning mock Supabase client')
     return {
       auth: { getUser: async () => ({ data: { user: null }, error: new Error('No credentials') }) },
       from: () => ({ 
@@ -35,8 +30,6 @@ function getClient() {
     }
   }
   
-  // Import dynamique pour éviter l'évaluation au build
-  // Utiliser eval() pour complètement cacher le require de Webpack
   try {
     // eslint-disable-next-line no-eval
     const createClient = eval('require')('@supabase/supabase-js').createClient
@@ -50,8 +43,6 @@ function getClient() {
     
     return _client
   } catch (error) {
-    console.error('Failed to load Supabase SDK:', error)
-    // Retourner le mock si le SDK ne peut pas être chargé
     return {
       auth: { getUser: async () => ({ data: { user: null }, error: new Error('SDK not available') }) },
       from: () => ({ 
