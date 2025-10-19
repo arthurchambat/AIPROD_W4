@@ -89,10 +89,14 @@ export async function POST(request: NextRequest) {
 
     console.log('🎨 Début de la génération pour projet:', projectId)
 
-    // Préparer l'input pour Replicate
+    // Préparer l'input pour Replicate SDXL
     const input = {
       prompt: project.prompt,
-      image_input: [project.input_image_url]
+      image: project.input_image_url,
+      // Options pour améliorer la qualité
+      num_outputs: 1,
+      guidance_scale: 7.5,
+      num_inference_steps: 50
     }
 
     console.log('Calling Replicate with:', JSON.stringify(input, null, 2))
@@ -100,6 +104,9 @@ export async function POST(request: NextRequest) {
     // Appeler Replicate
     const modelName = process.env.REPLICATE_MODEL || 'google/nano-banana'
     const output = await runReplicate(modelName, input)
+
+    console.log('🔍 [GENERATE-IMAGE] Replicate output type:', typeof output)
+    console.log('🔍 [GENERATE-IMAGE] Replicate output:', JSON.stringify(output, null, 2))
 
     // Extraire l'URL de l'image générée
     let generatedUrl: string | null = null
@@ -111,7 +118,10 @@ export async function POST(request: NextRequest) {
       generatedUrl = (output as any)[0]
     }
 
+    console.log('🔍 [GENERATE-IMAGE] Extracted URL:', generatedUrl)
+
     if (!generatedUrl) {
+      console.error('❌ [GENERATE-IMAGE] Could not extract URL from output:', output)
       throw new Error('Aucune URL d\'image générée par Replicate')
     }
 
