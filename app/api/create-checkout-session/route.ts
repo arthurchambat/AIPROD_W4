@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
     const token = authHeader.substring(7)
     
     // Vérifier l'authentification avec Supabase via fetch
-    const { data: userData, error: authError } = await supabaseAuth(token)
-    const user = userData?.user
+    const { data: user, error: authError } = await supabaseAuth(token)
     
     if (authError || !user) {
+      console.error('Auth error in create-checkout-session:', authError)
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 

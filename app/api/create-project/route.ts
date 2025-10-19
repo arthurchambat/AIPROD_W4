@@ -8,17 +8,23 @@ export async function POST(request: NextRequest) {
     // Vérifier l'authentification via Authorization header
     const authHeader = request.headers.get('Authorization')
     
+    console.log('Create-project auth header:', authHeader ? 'present' : 'missing')
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('No valid auth header')
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
     const token = authHeader.substring(7)
+    console.log('Token length:', token?.length)
     
     // Vérifier l'authentification avec Supabase via fetch
-    const { data: userData, error: authError } = await supabaseAuth(token)
-    const user = userData?.user
+    const { data: user, error: authError } = await supabaseAuth(token)
+    
+    console.log('Auth result:', { hasUser: !!user, error: authError?.message })
     
     if (authError || !user) {
+      console.error('Auth error in create-project:', authError)
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
