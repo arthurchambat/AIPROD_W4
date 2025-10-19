@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/context/AuthContext'
 
 interface ImageGeneratorProps {
   onSuccess?: () => void
 }
 
 export default function ImageGenerator({ onSuccess }: ImageGeneratorProps) {
+  const { session } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [prompt, setPrompt] = useState('Make the sheets in the style of the logo. Make the scene natural.')
   const [loading, setLoading] = useState(false)
@@ -28,9 +30,7 @@ export default function ImageGenerator({ onSuccess }: ImageGeneratorProps) {
     form.append('prompt', prompt)
 
     try {
-      // Get the access token from localStorage
-      const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
-      const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
+      const token = session?.access_token
       
       if (!token) {
         throw new Error('Non authentifié')

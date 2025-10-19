@@ -19,7 +19,7 @@ interface Project {
 }
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, session, loading: authLoading } = useAuth()
   const router = useRouter()
   const [projects, setProjects] = useState<Project[]>([])
   const [loadingProjects, setLoadingProjects] = useState(true)
@@ -38,8 +38,7 @@ export default function DashboardPage() {
 
   const fetchProjects = async () => {
     try {
-      const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
-      const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
+      const token = session?.access_token
       
       const res = await fetch('/api/projects', {
         headers: {
@@ -60,8 +59,7 @@ export default function DashboardPage() {
     if (!confirm('Supprimer ce projet ?')) return
     
     try {
-      const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
-      const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
+      const token = session?.access_token
       
       const res = await fetch(`/api/projects/${id}`, { 
         method: 'DELETE',
@@ -78,8 +76,7 @@ export default function DashboardPage() {
 
   const handleGenerate = async (projectId: string) => {
     try {
-      const supabaseAuth = localStorage.getItem('sb-pqsvqwnfzpshctzkguuu-auth-token')
-      const token = supabaseAuth ? JSON.parse(supabaseAuth).access_token : null
+      const token = session?.access_token
       
       if (!token) {
         throw new Error('Non authentifié')
